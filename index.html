@@ -118,20 +118,16 @@ function startScanner() {
   qr = new Html5Qrcode("reader");
 
   qr.start(
+    { facingMode: "environment" },
     {
-      facingMode: "environment",
-      width: { ideal: 640 },
-      height: { ideal: 480 }
-    },
-    {
-      fps: 20,
-      qrbox: { width: 250, height: 250 }
+      fps: 10,
+      qrbox: 200
     },
     onScanSuccess
   )
-  .catch(() => {
+  .catch(err => {
     document.getElementById("result").innerHTML =
-      "❌ Camera blocked. Allow permission in browser.";
+      "Camera Error: " + err;
   });
 }
 
@@ -141,4 +137,5 @@ startScanner();
 
 </body>
 </html>
+
 

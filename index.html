@@ -34,15 +34,14 @@
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec";  // 🔥 PASTE YOUR APPS SCRIPT /exec LINK HERE
+const API_URL = "PASTE_YOUR_EXEC_URL_HERE";
 let scanning = true;
 const qr = new Html5Qrcode("reader");
 
-// Render attendance table
+// Render table
 function renderAttendance(data) {
   const tbody = document.querySelector("#attendanceTable tbody");
   tbody.innerHTML = "";
-
   data.forEach(row => {
     const tr = document.createElement("tr");
     const time = new Date(row.timestamp).toLocaleTimeString();
@@ -54,7 +53,7 @@ function renderAttendance(data) {
   });
 }
 
-// Fetch today's attendance from backend
+// Fetch attendance
 function updateAttendance() {
   fetch(API_URL + "?action=getToday")
     .then(res => res.json())
@@ -62,11 +61,10 @@ function updateAttendance() {
     .catch(err => console.log(err));
 }
 
-// QR scan success
+// Scan handler
 function onScanSuccess(text) {
   if (!scanning) return;
   scanning = false;
-
   document.getElementById("beep").play();
 
   const parts = text.split("|");
@@ -102,20 +100,13 @@ function onScanSuccess(text) {
   });
 }
 
-// Start scanner
+// Start camera
 function startScanner() {
   const size = Math.min(window.innerWidth * 0.8, 300);
-
   Html5Qrcode.getCameras().then(devices => {
     if (devices.length) {
-      qr.start(
-        devices[0].id,
-        { fps: 10, qrbox: size },
-        onScanSuccess
-      );
+      qr.start(devices[0].id, { fps: 10, qrbox: size }, onScanSuccess);
     }
-  }).catch(err => {
-    document.getElementById("result").innerText = "Camera error: " + err;
   });
 }
 

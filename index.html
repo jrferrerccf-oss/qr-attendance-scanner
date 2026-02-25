@@ -106,7 +106,7 @@ function restartScan() {
   setTimeout(() => {
     scanning = true;
     document.getElementById("result").innerHTML = "";
-  }, 1500);
+  }, 800);
 }
 
 
@@ -117,14 +117,11 @@ function startScanner() {
 
   qr = new Html5Qrcode("reader");
 
-  qr.start(
-    { facingMode: "environment" },
-    {
-      fps: 25,
-      qrbox: 0
-    },
-    onScanSuccess
-  )
+qr.start(
+  { facingMode: "environment" },
+  { fps: 30, qrbox: 0, verbose: false },
+  onScanSuccess
+)
   .catch(err => {
     document.getElementById("result").innerHTML =
       "Camera Error: " + err;
@@ -137,6 +134,7 @@ startScanner();
 
 </body>
 </html>
+
 
 
 

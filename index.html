@@ -4,33 +4,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <title>QR Attendance Scanner</title>
+
   <style>
     body { text-align:center; font-family:Arial; }
-    table, th, td { border: 1px solid #333; border-collapse: collapse; padding: 5px; }
-    th { background-color: #f0f0f0; }
-    #result { font-size:22px; font-weight:bold; margin-top:10px; }
     #reader { width:90%; max-width:400px; margin:auto; }
+    #result { font-size:22px; font-weight:bold; margin-top:15px; }
   </style>
 </head>
 
 <body>
 
 <h2>QR Attendance Scanner</h2>
+
 <div id="reader"></div>
 <p id="result"></p>
-
-<h3>Today's Attendance</h3>
-<table id="attendanceTable" style="margin:auto; width:90%; max-width:400px;">
-  <thead>
-    <tr>
-      <th>Time</th>
-      <th>ID</th>
-      <th>First Name</th>
-      <th>Last Name</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
 
 <audio id="beep" preload="auto">
   <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
@@ -38,45 +25,15 @@
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec"; // <-- Replace with your Google Apps Script Web App URL
+const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec"; // 🔥 Replace with your /exec URL
 let scanning = true;
 let qr;
-
-// ========================
-// Render Table
-// ========================
-function renderAttendance(data) {
-  const tbody = document.querySelector("#attendanceTable tbody");
-  tbody.innerHTML = "";
-
-  data.forEach(row => {
-    const tr = document.createElement("tr");
-    const time = new Date(row.timestamp).toLocaleTimeString();
-
-    tr.innerHTML = `
-      <td>${time}</td>
-      <td>${row.id}</td>
-      <td>${row.firstName}</td>
-      <td>${row.lastName}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-// ========================
-// Fetch Today's Attendance
-// ========================
-function updateAttendance() {
-  fetch(API_URL + "?action=getToday")
-    .then(res => res.json())
-    .then(data => renderAttendance(data))
-    .catch(err => console.log("Fetch error:", err));
-}
 
 // ========================
 // Scan Success
 // ========================
 function onScanSuccess(text) {
+
   if (!scanning) return;
   scanning = false;
 
@@ -85,7 +42,7 @@ function onScanSuccess(text) {
   const parts = text.split("|");
 
   if (parts.length !== 3) {
-    document.getElementById("result").innerText = "❌ Invalid QR Code";
+    document.getElementById("result").innerHTML = "❌ Invalid QR Code";
     restartScan();
     return;
   }
@@ -102,6 +59,7 @@ function onScanSuccess(text) {
   })
   .then(res => res.text())
   .then(response => {
+
     const fullName = scanData.firstName + " " + scanData.lastName;
     const timeNow = new Date().toLocaleTimeString();
 
@@ -113,47 +71,52 @@ function onScanSuccess(text) {
         "✅ <b>" + fullName + "</b> recorded at " + timeNow;
     }
 
-    updateAttendance();
     restartScan();
   })
-  .catch(err => {
-    document.getElementById("result").innerText = "❌ Error Saving Data";
+  .catch(() => {
+    document.getElementById("result").innerHTML = "❌ Error Saving Data";
     restartScan();
   });
 }
 
+
 // ========================
-// Restart Scanner (2 sec delay)
+// Restart Scanner
 // ========================
 function restartScan() {
   setTimeout(() => {
     scanning = true;
-    document.getElementById("result").innerText = "";
-  }, 2000);
+    document.getElementById("result").innerHTML = "";
+  }, 1500);
 }
 
+
 // ========================
-// Start Camera (Back Camera Auto)
+// Start Scanner (Optimized for Speed)
 // ========================
 function startScanner() {
+
   qr = new Html5Qrcode("reader");
 
   qr.start(
-    { facingMode: "environment" }, // 🔥 Forces back camera
     {
-      fps: 10,
+      facingMode: "environment",
+      width: { ideal: 640 },
+      height: { ideal: 480 }
+    },
+    {
+      fps: 20,              // 🔥 faster detection
       qrbox: { width: 250, height: 250 }
     },
     onScanSuccess
   )
-  .catch(err => {
-    document.getElementById("result").innerText =
-      "❌ Camera Error. Allow camera permission.";
+  .catch(() => {
+    document.getElementById("result").innerHTML =
+      "❌ Camera error. Allow permission.";
   });
 }
 
 startScanner();
-updateAttendance();
 
 </script>
 </body>

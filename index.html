@@ -91,11 +91,11 @@ function onScanSuccess(text) {
 
     restartScan();
   })
-  .catch(() => {
-    document.getElementById("result").innerHTML =
-      "❌ Network Error";
-    restartScan();
-  });
+.catch(err => {
+  console.log("Camera Error:", err);
+  document.getElementById("result").innerHTML =
+    "❌ Camera Error: " + err;
+});
 }
 
 
@@ -141,3 +141,4 @@ startScanner();
 
 </body>
 </html>
+

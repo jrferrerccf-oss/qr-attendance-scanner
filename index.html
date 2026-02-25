@@ -5,15 +5,19 @@
   <script src="https://unpkg.com/html5-qrcode"></script>
   <title>QR Attendance Scanner</title>
   <style>
+    body { text-align:center; font-family:Arial; }
     table, th, td { border: 1px solid #333; border-collapse: collapse; padding: 5px; }
     th { background-color: #f0f0f0; }
+    #result { font-size:22px; font-weight:bold; margin-top:10px; }
+    #reader { width:90%; max-width:400px; margin:auto; }
   </style>
 </head>
-<body style="text-align:center; font-family:Arial;">
+
+<body>
 
 <h2>QR Attendance Scanner</h2>
-<div id="reader" style="width:90%; max-width:400px; margin:auto;"></div>
-<p id="result" style="font-size:18px; margin-top:10px;"></p>
+<div id="reader"></div>
+<p id="result"></p>
 
 <h3>Today's Attendance</h3>
 <table id="attendanceTable" style="margin:auto; width:90%; max-width:400px;">
@@ -34,43 +38,55 @@
 
 <script>
 
-const API_URL = "PASTE_YOUR_EXEC_URL_HERE";
+const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec"; // <-- Replace with your Google Apps Script Web App URL
 let scanning = true;
-const qr = new Html5Qrcode("reader");
+let qr;
 
-// Render table
+// ========================
+// Render Table
+// ========================
 function renderAttendance(data) {
   const tbody = document.querySelector("#attendanceTable tbody");
   tbody.innerHTML = "";
+
   data.forEach(row => {
     const tr = document.createElement("tr");
     const time = new Date(row.timestamp).toLocaleTimeString();
-    tr.innerHTML = `<td>${time}</td>
-                    <td>${row.id}</td>
-                    <td>${row.firstName}</td>
-                    <td>${row.lastName}</td>`;
+
+    tr.innerHTML = `
+      <td>${time}</td>
+      <td>${row.id}</td>
+      <td>${row.firstName}</td>
+      <td>${row.lastName}</td>
+    `;
     tbody.appendChild(tr);
   });
 }
 
-// Fetch attendance
+// ========================
+// Fetch Today's Attendance
+// ========================
 function updateAttendance() {
   fetch(API_URL + "?action=getToday")
     .then(res => res.json())
     .then(data => renderAttendance(data))
-    .catch(err => console.log(err));
+    .catch(err => console.log("Fetch error:", err));
 }
 
-// Scan handler
+// ========================
+// Scan Success
+// ========================
 function onScanSuccess(text) {
   if (!scanning) return;
   scanning = false;
+
   document.getElementById("beep").play();
 
   const parts = text.split("|");
+
   if (parts.length !== 3) {
-    document.getElementById("result").innerText = "❌ Invalid QR";
-    scanning = true;
+    document.getElementById("result").innerText = "❌ Invalid QR Code";
+    restartScan();
     return;
   }
 
@@ -85,28 +101,54 @@ function onScanSuccess(text) {
     body: JSON.stringify(scanData)
   })
   .then(res => res.text())
-  .then(res => {
-    if (res === "DUPLICATE") {
-      document.getElementById("result").innerText = "⚠ Already Scanned Today";
+  .then(response => {
+    const fullName = scanData.firstName + " " + scanData.lastName;
+    const timeNow = new Date().toLocaleTimeString();
+
+    if (response === "DUPLICATE") {
+      document.getElementById("result").innerHTML =
+        "⚠ <b>" + fullName + "</b> already scanned today";
     } else {
-      document.getElementById("result").innerText = "✅ Attendance Recorded";
+      document.getElementById("result").innerHTML =
+        "✅ <b>" + fullName + "</b> recorded at " + timeNow;
     }
+
     updateAttendance();
-    setTimeout(() => scanning = true, 2000);
+    restartScan();
   })
   .catch(err => {
-    document.getElementById("result").innerText = "❌ Error saving";
-    scanning = true;
+    document.getElementById("result").innerText = "❌ Error Saving Data";
+    restartScan();
   });
 }
 
-// Start camera
+// ========================
+// Restart Scanner (2 sec delay)
+// ========================
+function restartScan() {
+  setTimeout(() => {
+    scanning = true;
+    document.getElementById("result").innerText = "";
+  }, 2000);
+}
+
+// ========================
+// Start Camera (Back Camera Auto)
+// ========================
 function startScanner() {
-  const size = Math.min(window.innerWidth * 0.8, 300);
-  Html5Qrcode.getCameras().then(devices => {
-    if (devices.length) {
-      qr.start(devices[0].id, { fps: 10, qrbox: size }, onScanSuccess);
-    }
+  qr = new Html5Qrcode("reader");
+
+  qr.start(
+    { facingMode: "environment" }, // 🔥 Forces back camera
+    {
+      fps: 10,
+      qrbox: { width: 250, height: 250 }
+    },
+    onScanSuccess
+  )
+  .catch(err => {
+    document.getElementById("result").innerText =
+      "❌ Camera Error. Allow camera permission.";
   });
 }
 

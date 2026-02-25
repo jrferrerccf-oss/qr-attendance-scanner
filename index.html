@@ -6,9 +6,24 @@
   <title>QR Attendance Scanner</title>
 
   <style>
-    body { text-align:center; font-family:Arial; }
-    #reader { width:90%; max-width:400px; margin:auto; }
-    #result { font-size:22px; font-weight:bold; margin-top:15px; }
+    body {
+      text-align:center;
+      font-family: Arial;
+      background:#f8f9fa;
+    }
+
+    #reader {
+      width:90%;
+      max-width:400px;
+      margin:auto;
+    }
+
+    #result {
+      font-size:20px;
+      font-weight:bold;
+      margin-top:15px;
+      min-height:30px;
+    }
   </style>
 </head>
 
@@ -25,7 +40,7 @@
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec"; // 🔥 Replace with your /exec URL
+const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec";  // 🔴 REPLACE THIS
 let scanning = true;
 let qr;
 
@@ -65,16 +80,20 @@ function onScanSuccess(text) {
 
     if (response === "DUPLICATE") {
       document.getElementById("result").innerHTML =
-        "⚠ <b>" + fullName + "</b> already scanned today";
-    } else {
+        "⚠️ <b>" + fullName + "</b> already scanned today";
+    } else if (response === "OK") {
       document.getElementById("result").innerHTML =
         "✅ <b>" + fullName + "</b> recorded at " + timeNow;
+    } else {
+      document.getElementById("result").innerHTML =
+        "❌ Server Error";
     }
 
     restartScan();
   })
   .catch(() => {
-    document.getElementById("result").innerHTML = "❌ Error Saving Data";
+    document.getElementById("result").innerHTML =
+      "❌ Network Error";
     restartScan();
   });
 }
@@ -92,7 +111,7 @@ function restartScan() {
 
 
 // ========================
-// Start Scanner (Optimized for Speed)
+// Start Scanner (FAST SETTINGS)
 // ========================
 function startScanner() {
 
@@ -105,19 +124,20 @@ function startScanner() {
       height: { ideal: 480 }
     },
     {
-      fps: 20,              // 🔥 faster detection
+      fps: 20,
       qrbox: { width: 250, height: 250 }
     },
     onScanSuccess
   )
   .catch(() => {
     document.getElementById("result").innerHTML =
-      "❌ Camera error. Allow permission.";
+      "❌ Camera blocked. Allow permission in browser.";
   });
 }
 
 startScanner();
 
 </script>
+
 </body>
 </html>

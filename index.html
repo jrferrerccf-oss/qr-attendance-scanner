@@ -13,13 +13,13 @@
     }
 
     #reader {
-      width:90%;
+      width:95%;
       max-width:400px;
       margin:auto;
     }
 
     #result {
-      font-size:20px;
+      font-size:18px;
       font-weight:bold;
       margin-top:15px;
       min-height:30px;
@@ -40,25 +40,28 @@
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec";  // 🔴 REPLACE THIS
-let scanning = true;
+const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec"; 
+// 🔴 Replace with your latest deployment URL
+
 let qr;
+let isProcessing = false;
+
 
 // ========================
 // Scan Success
 // ========================
-function onScanSuccess(text) {
+async function onScanSuccess(decodedText) {
 
-  if (!scanning) return;
-  scanning = false;
+  if (isProcessing) return;
+  isProcessing = true;
 
   document.getElementById("beep").play();
 
-  const parts = text.split("|");
+  const parts = decodedText.split("|");
 
   if (parts.length !== 3) {
-    document.getElementById("result").innerHTML = "❌ Invalid QR Code";
-    restartScan();
+    alert("❌ Invalid QR Code");
+    restartScanner();
     return;
   }
 
@@ -68,63 +71,76 @@ function onScanSuccess(text) {
     lastName: parts[2].trim()
   };
 
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify(scanData)
-  })
-  .then(res => res.text())
-  .then(response => {
+  try {
+
+    await qr.pause(true);
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(scanData)
+    });
+
+    const response = await res.text();
 
     const fullName = scanData.firstName + " " + scanData.lastName;
     const timeNow = new Date().toLocaleTimeString();
 
     if (response === "DUPLICATE") {
-      document.getElementById("result").innerHTML =
-        "⚠️ <b>" + fullName + "</b> already scanned today";
-    } else if (response === "OK") {
-      document.getElementById("result").innerHTML =
-        "✅ <b>" + fullName + "</b> recorded at " + timeNow;
-    } else {
-      document.getElementById("result").innerHTML =
-        "❌ Server Error";
+
+      confirm("⚠️ " + fullName + " already scanned today.");
+
+    } 
+    else if (response === "OK") {
+
+      confirm("✅ " + fullName + " recorded successfully at " + timeNow + ".");
+
+    } 
+    else {
+
+      confirm("❌ Server Error.");
+
     }
 
-    restartScan();
-  })
-.catch(err => {
-  console.log("Camera Error:", err);
-  document.getElementById("result").innerHTML =
-    "❌ Camera Error: " + err;
-});
+  } catch (err) {
+
+    confirm("❌ Network Error.");
+
+  }
+
+  restartScanner();
 }
 
 
 // ========================
 // Restart Scanner
 // ========================
-function restartScan() {
-  setTimeout(() => {
-    scanning = true;
-    document.getElementById("result").innerHTML = "";
-  }, 800);
+function restartScanner() {
+
+  setTimeout(async () => {
+    isProcessing = false;
+    await qr.resume();
+  }, 1500);
 }
 
 
 // ========================
-// Start Scanner (FAST SETTINGS)
+// Start Scanner
 // ========================
 function startScanner() {
 
   qr = new Html5Qrcode("reader");
 
-qr.start(
-  { facingMode: "environment" },
-  { fps: 30, qrbox: 0, verbose: false },
-  onScanSuccess
-)
-  .catch(err => {
-    document.getElementById("result").innerHTML =
-      "Camera Error: " + err;
+  qr.start(
+    { facingMode: "environment" },
+    {
+      fps: 30,
+      qrbox: { width: 280, height: 280 },
+      aspectRatio: 1.0
+    },
+    onScanSuccess
+  )
+  .catch(() => {
+    alert("❌ Camera blocked. Allow permission in browser.");
   });
 }
 
@@ -134,7 +150,3 @@ startScanner();
 
 </body>
 </html>
-
-
-
-

@@ -120,8 +120,8 @@ function startScanner() {
   qr.start(
     { facingMode: "environment" },
     {
-      fps: 10,
-      qrbox: 200
+      fps: 25,
+      qrbox: 0
     },
     onScanSuccess
   )
@@ -137,5 +137,6 @@ startScanner();
 
 </body>
 </html>
+
 
 

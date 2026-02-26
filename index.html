@@ -14,25 +14,43 @@
 
     #reader {
       width:95%;
-      max-width:400px;
+      max-width:350px;
       margin:auto;
     }
 
-    #result {
-      font-size:18px;
-      font-weight:bold;
-      margin-top:15px;
-      min-height:30px;
+    /* Floating toast message */
+    #toast {
+      visibility: hidden;
+      min-width: 200px;
+      margin-left: -100px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 8px;
+      padding: 12px;
+      position: fixed;
+      z-index: 999;
+      left: 50%;
+      bottom: 50px;
+      font-size: 16px;
+      opacity: 0;
+      transition: opacity 0.5s, bottom 0.5s;
+    }
+
+    #toast.show {
+      visibility: visible;
+      opacity: 1;
+      bottom: 70px;
     }
   </style>
 </head>
 
 <body>
 
-<h2>QR Attendance Scanner</h2>
+<h3>QR Attendance Scanner</h3>
 
 <div id="reader"></div>
-<p id="result"></p>
+<div id="toast"></div>
 
 <audio id="beep" preload="auto">
   <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
@@ -40,11 +58,25 @@
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec"; 
-// 🔴 Replace with your latest deployment URL
+const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec";
 
 let qr;
 let isProcessing = false;
+
+
+// ========================
+// SHOW TOAST MESSAGE
+// ========================
+function showToast(message, color = "#333") {
+  const toast = document.getElementById("toast");
+  toast.innerHTML = message;
+  toast.style.backgroundColor = color;
+  toast.className = "show";
+
+  setTimeout(() => {
+    toast.className = toast.className.replace("show", "");
+  }, 2000); // Auto hide after 2 seconds
+}
 
 
 // ========================
@@ -60,7 +92,7 @@ async function onScanSuccess(decodedText) {
   const parts = decodedText.split("|");
 
   if (parts.length !== 3) {
-    alert("❌ Invalid QR Code");
+    showToast("❌ Invalid QR", "#e74c3c");
     restartScanner();
     return;
   }
@@ -72,7 +104,6 @@ async function onScanSuccess(decodedText) {
   };
 
   try {
-
     await qr.pause(true);
 
     const res = await fetch(API_URL, {
@@ -81,30 +112,20 @@ async function onScanSuccess(decodedText) {
     });
 
     const response = await res.text();
-
     const fullName = scanData.firstName + " " + scanData.lastName;
-    const timeNow = new Date().toLocaleTimeString();
 
-    if (response === "DUPLICATE") {
-
-      confirm("⚠️ " + fullName + " already scanned today.");
-
+    if (response === "OK") {
+      showToast(`✅ ${fullName} recorded`, "#2ecc71"); // green
     } 
-    else if (response === "OK") {
-
-      confirm("✅ " + fullName + " recorded successfully at " + timeNow + ".");
-
+    else if (response === "DUPLICATE") {
+      showToast(`⚠️ ${fullName} already scanned`, "#f1c40f"); // yellow
     } 
     else {
-
-      confirm("❌ Server Error.");
-
+      showToast("❌ Server Error", "#e74c3c"); // red
     }
 
   } catch (err) {
-
-    confirm("❌ Network Error.");
-
+    showToast("❌ Network Error", "#e74c3c"); // red
   }
 
   restartScanner();
@@ -115,16 +136,15 @@ async function onScanSuccess(decodedText) {
 // Restart Scanner
 // ========================
 function restartScanner() {
-
   setTimeout(async () => {
     isProcessing = false;
     await qr.resume();
-  }, 1500);
+  }, 1200);
 }
 
 
 // ========================
-// Start Scanner
+// Start Scanner (Mobile Optimized)
 // ========================
 function startScanner() {
 
@@ -133,14 +153,13 @@ function startScanner() {
   qr.start(
     { facingMode: "environment" },
     {
-      fps: 30,
-      qrbox: { width: 280, height: 280 },
-      aspectRatio: 1.0
+      fps: 10,                     // Low FPS for mobile
+      qrbox: { width: 220, height: 220 }
     },
     onScanSuccess
   )
   .catch(() => {
-    alert("❌ Camera blocked. Allow permission in browser.");
+    showToast("❌ Camera blocked", "#e74c3c");
   });
 }
 

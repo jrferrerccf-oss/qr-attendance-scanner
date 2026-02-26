@@ -17,13 +17,6 @@
       max-width:400px;
       margin:auto;
     }
-
-    #result {
-      font-size:18px;
-      font-weight:bold;
-      margin-top:15px;
-      min-height:30px;
-    }
   </style>
 </head>
 
@@ -32,7 +25,6 @@
 <h2>QR Attendance Scanner</h2>
 
 <div id="reader"></div>
-<p id="result"></p>
 
 <audio id="beep" preload="auto">
   <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
@@ -40,11 +32,39 @@
 
 <script>
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec"; 
-// 🔴 Replace with your latest deployment URL
+const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCkiYWL1xcGNZ5nlylnwad__0sMe2AQsOqUZL1DNLK79bEI/exec";
+// 🔴 Replace with your Google Apps Script deployment URL
 
 let qr;
 let isProcessing = false;
+
+
+// ========================
+// REQUEST NOTIFICATION PERMISSION
+// ========================
+if ("Notification" in window) {
+  Notification.requestPermission();
+}
+
+
+// ========================
+// SHOW DESKTOP NOTIFICATION (AUTO CLOSE 3s)
+// ========================
+function showNotification(title, message, iconUrl) {
+
+  if (Notification.permission === "granted") {
+
+    const notification = new Notification(title, {
+      body: message,
+      icon: iconUrl
+    });
+
+    // Auto close after 3 seconds
+    setTimeout(() => {
+      notification.close();
+    }, 3000);
+  }
+}
 
 
 // ========================
@@ -60,7 +80,7 @@ async function onScanSuccess(decodedText) {
   const parts = decodedText.split("|");
 
   if (parts.length !== 3) {
-    alert("❌ Invalid QR Code");
+    alert("Invalid QR Code");
     restartScanner();
     return;
   }
@@ -85,25 +105,41 @@ async function onScanSuccess(decodedText) {
     const fullName = scanData.firstName + " " + scanData.lastName;
     const timeNow = new Date().toLocaleTimeString();
 
-    if (response === "DUPLICATE") {
+    if (response === "OK") {
 
-      confirm("⚠️ " + fullName + " already scanned today.");
+      showNotification(
+        "Attendance Recorded ✅",
+        fullName + " at " + timeNow,
+        "https://cdn-icons-png.flaticon.com/512/190/190411.png"
+      );
 
     } 
-    else if (response === "OK") {
+    else if (response === "DUPLICATE") {
 
-      confirm("✅ " + fullName + " recorded successfully at " + timeNow + ".");
+      showNotification(
+        "Already Scanned ⚠️",
+        fullName + " already scanned today.",
+        "https://cdn-icons-png.flaticon.com/512/463/463612.png"
+      );
 
     } 
     else {
 
-      confirm("❌ Server Error.");
+      showNotification(
+        "Server Error ❌",
+        "Something went wrong.",
+        "https://cdn-icons-png.flaticon.com/512/463/463612.png"
+      );
 
     }
 
   } catch (err) {
 
-    confirm("❌ Network Error.");
+    showNotification(
+      "Network Error ❌",
+      "Check your internet connection.",
+      "https://cdn-icons-png.flaticon.com/512/463/463612.png"
+    );
 
   }
 
@@ -134,13 +170,12 @@ function startScanner() {
     { facingMode: "environment" },
     {
       fps: 30,
-      qrbox: { width: 280, height: 280 },
-      aspectRatio: 1.0
+      qrbox: { width: 280, height: 280 }
     },
     onScanSuccess
   )
   .catch(() => {
-    alert("❌ Camera blocked. Allow permission in browser.");
+    alert("Camera blocked. Allow permission in browser.");
   });
 }
 

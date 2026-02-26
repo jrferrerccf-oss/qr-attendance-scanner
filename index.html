@@ -12,9 +12,16 @@
       background:#f8f9fa;
     }
 
+    #counter {
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+
     #reader {
       width:95%;
-      max-width:350px;
+      max-width:400px;
       margin:auto;
     }
 
@@ -48,7 +55,7 @@
 <body>
 
 <h3>QR Attendance Scanner</h3>
-
+<div id="counter">Total Attendance Today: 0</div>
 <div id="reader"></div>
 <div id="toast"></div>
 
@@ -62,20 +69,48 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxVoWrmA-0JajEIHfVV6gCk
 
 let qr;
 let isProcessing = false;
+let totalAttendance = 0;
+const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+// Track today’s date for auto-reset
+let todayDate = new Date().toDateString();
 
 
 // ========================
 // SHOW TOAST MESSAGE
 // ========================
-function showToast(message, color = "#333") {
+function showToast(message, color="#333") {
   const toast = document.getElementById("toast");
   toast.innerHTML = message;
   toast.style.backgroundColor = color;
   toast.className = "show";
 
   setTimeout(() => {
-    toast.className = toast.className.replace("show", "");
-  }, 2000); // Auto hide after 2 seconds
+    toast.className = toast.className.replace("show","");
+  }, 2000);
+}
+
+
+// ========================
+// UPDATE TOTAL ATTENDANCE COUNTER
+// ========================
+function updateCounter() {
+  const counterDiv = document.getElementById("counter");
+  counterDiv.innerText = `Total Attendance Today: ${totalAttendance}`;
+}
+
+
+// ========================
+// RESET COUNTER IF DAY CHANGED
+// ========================
+function checkDateReset() {
+  const now = new Date();
+  const nowStr = now.toDateString();
+  if (nowStr !== todayDate) {
+    totalAttendance = 0;
+    todayDate = nowStr;
+    updateCounter();
+  }
 }
 
 
@@ -83,6 +118,9 @@ function showToast(message, color = "#333") {
 // Scan Success
 // ========================
 async function onScanSuccess(decodedText) {
+
+  // Auto-reset counter if date changed
+  checkDateReset();
 
   if (isProcessing) return;
   isProcessing = true;
@@ -115,17 +153,19 @@ async function onScanSuccess(decodedText) {
     const fullName = scanData.firstName + " " + scanData.lastName;
 
     if (response === "OK") {
-      showToast(`✅ ${fullName} recorded`, "#2ecc71"); // green
+      totalAttendance++;
+      updateCounter();
+      showToast(`✅ ${fullName} recorded`, "#2ecc71");
     } 
     else if (response === "DUPLICATE") {
-      showToast(`⚠️ ${fullName} already scanned`, "#f1c40f"); // yellow
+      showToast(`⚠️ ${fullName} already scanned`, "#f1c40f");
     } 
     else {
-      showToast("❌ Server Error", "#e74c3c"); // red
+      showToast("❌ Server Error", "#e74c3c");
     }
 
   } catch (err) {
-    showToast("❌ Network Error", "#e74c3c"); // red
+    showToast("❌ Network Error", "#e74c3c");
   }
 
   restartScanner();
@@ -144,7 +184,7 @@ function restartScanner() {
 
 
 // ========================
-// Start Scanner (Mobile Optimized)
+// Start Scanner
 // ========================
 function startScanner() {
 
@@ -153,8 +193,8 @@ function startScanner() {
   qr.start(
     { facingMode: "environment" },
     {
-      fps: 10,                     // Low FPS for mobile
-      qrbox: { width: 220, height: 220 }
+      fps: isMobile ? 10 : 20,
+      qrbox: isMobile ? { width: 220, height: 220 } : { width: 280, height: 280 }
     },
     onScanSuccess
   )
